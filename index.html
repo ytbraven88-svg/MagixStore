@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagixStore - E-Commerce</title>
+    <style>
+        :root {
+            --primary-color: #03ac03;
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --border-color: #e5e7eb;
+            --danger: #ff5722;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 0; }
+        header { background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 20px; font-weight: bold; color: var(--primary-color); cursor: pointer; }
+        .cart-btn { background-color: var(--primary-color); color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .container { max-width: 1000px; margin: 20px auto; padding: 0 15px; }
+        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 15px; }
+        .product-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; }
+        .product-name { font-size: 14px; font-weight: 500; margin: 0 0 8px 0; }
+        .product-price { font-size: 16px; font-weight: bold; color: var(--danger); margin-bottom: 10px; }
+        .btn { background-color: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); border-radius: 6px; padding: 8px; font-size: 14px; font-weight: bold; cursor: pointer; width: 100%; }
+        .btn:hover { background-color: var(--primary-color); color: white; }
+        .cart-section, .checkout-section { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; margin-top: 20px; display: none; }
+        .cart-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: 10px 0; }
+        .qty-control button { padding: 2px 8px; background: #ddd; border: none; cursor: pointer; font-weight: bold; }
+        .total-box { font-size: 18px; font-weight: bold; margin: 15px 0; text-align: right; }
+        .btn-checkout { background-color: var(--danger); color: white; border: none; padding: 12px; width: 100%; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo" onclick="showCatalog()">MagixStore</div>
+        <button class="cart-btn" onclick="toggleCart()">Keranjang (<span id="cart-count">0</span>)</button>
+    </header>
+    <div class="container">
+        <div id="catalog-view">
+            <div class="section-title">Katalog Produk Pilihan</div>
+            <div class="product-grid" id="product-list"></div>
+        </div>
+        <div id="cart-view" class="cart-section">
+            <div class="section-title">Keranjang Belanja Anda</div>
+            <div id="cart-items-container"><p>Keranjang masih kosong.</p></div>
+            <div class="total-box">Total: Rp <span id="cart-total">0</span></div>
+            <button class="btn-checkout" onclick="proceedCheckout()">Lanjut ke Pembayaran</button>
+        </div>
+        <div id="checkout-view" class="checkout-section">
+            <div class="section-title">Simulasi Pembayaran (Checkout)</div>
+            <p>Pilih Metode Pembayaran:</p>
+            <label><input type="radio" name="payment" checked> QRIS / ShopeePay</label><br><br>
+            <label><input type="radio" name="payment"> Transfer Bank (BCA/Mandiri)</label><br><br>
+            <button class="btn-checkout" onclick="finishOrder()">Bayar Sekarang</button>
+        </div>
+    </div>
+    <script>
+        const products = [
+            { id: 1, name: "Kemeja Flanel Casual Pria", price: 125000 },
+            { id: 2, name: "Sepatu Sneakers Olahraga", price: 249000 },
+            { id: 3, name: "Tas Ransel Laptop Anti Air", price: 185000 },
+            { id: 4, name: "Botol Minum Termos Stainless", price: 65000 }
+        ];
+        let cart = [];
+        function renderProducts() {
+            document.getElementById('product-list').innerHTML = products.map(p => `
+                <div class="product-card">
+                    <h3 class="product-name">${p.name}</h3>
+                    <div class="product-price">Rp ${p.price.toLocaleString()}</div>
+                    <button class="btn" onclick="addToCart(${p.id})">+ Keranjang</button>
+                </div>
+            `).join('');
+        }
+        function addToCart(id) {
+            const product = products.find(p => p.id === id);
+            const existing = cart.find(item => item.id === id);
+            if (existing) { existing.qty++; } else { cart.push({ ...product, qty: 1 }); }
+            updateCartUI();
+            alert("Produk ditambahkan ke keranjang!");
+        }
+        function updateCartUI() {
+            document.getElementById('cart-count').innerText = cart.reduce((sum, item) => sum + item.qty, 0);
+            const container = document.getElementById('cart-items-container');
+            if (cart.length === 0) {
+                container.innerHTML = "<p>Keranjang masih kosong.</p>";
+                document.getElementById('cart-total').innerText = "0";
+                return;
+            }
+            let total = 0;
+            container.innerHTML = cart.map(item => {
+                total += item.price * item.qty;
+                return `
+                    <div class="cart-item">
+                        <div><strong>${item.name}</strong><br>Rp ${item.price.toLocaleString()} x ${item.qty}</div>
+                        <div class="qty-control">
+                            <button onclick="changeQty(${item.id}, -1)">-</button>
+                            <span>${item.qty}</span>
+                            <button onclick="changeQty(${item.id}, 1)">+</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            document.getElementById('cart-total').innerText = total.toLocaleString();
+        }
+        function changeQty(id, delta) {
+            const item = cart.find(i => i.id === id);
+            if (item) {
+                item.qty += delta;
+                if (item.qty <= 0) { cart = cart.filter(i => i.id !== id); }
+            }
+            updateCartUI();
+        }
+        function toggleCart() {
+            document.getElementById('catalog-view').style.display = 'none';
+            document.getElementById('checkout-view').style.display = 'none';
+            document.getElementById('cart-view').style.display = 'block';
+        }
+        function showCatalog() {
+            document.getElementById('cart-view').style.display = 'none';
+            document.getElementById('checkout-view').style.display = 'none';
+            document.getElementById('catalog-view').style.display = 'block';
+        }
+        function proceedCheckout() {
+            if (cart.length === 0) { alert("Keranjang kosong!"); return; }
+            document.getElementById('cart-view').style.display = 'none';
+            document.getElementById('checkout-view').style.display = 'block';
+        }
+        async function finishOrder() {
+            if (cart.length === 0) { alert("Keranjang kosong!"); return; }
+            try {
+                const response = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ items: cart })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert(result.message + "\nNo. Pesanan: " + result.orderId);
+                    cart = [];
+                    updateCartUI();
+                    showCatalog();
+                } else {
+                    alert("Gagal memproses pesanan.");
+                }
+            } catch (error) {
+                alert("Terjadi kesalahan koneksi ke backend.");
+            }
+        }
+        renderProducts();
+    </script>
+</body>
+</html>
